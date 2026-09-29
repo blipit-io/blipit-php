@@ -1,0 +1,36 @@
+{
+  "name": "blipit/blipit",
+  "description": "Blipit error monitoring for PHP and Laravel. Know your app broke before your users tell you.",
+  "type": "library",
+  "license": "MIT",
+  "keywords": ["error-monitoring", "errors", "logging", "blipit", "laravel"],
+  "homepage": "https://blipit.io",
+  "support": {
+    "docs": "https://docs.blipit.io/php",
+    "email": "support@blipit.io"
+  },
+  "authors": [
+    { "name": "Louward Labs", "email": "support@blipit.io" }
+  ],
+  "require": {
+    "php": "^7.4 || ^8.0",
+    "sentry/sentry": "^4.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0 || ^12.0"
+  },
+  "autoload": {
+    "psr-4": { "Blipit\\": "src/" }
+  },
+  "autoload-dev": {
+    "psr-4": { "Blipit\\Tests\\": "tests/" }
+  },
+  "scripts": {
+    "test": "phpunit"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
