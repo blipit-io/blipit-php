@@ -45,7 +45,7 @@ Blipit::addBreadcrumb('cache cleared', 'cache');
 Blipit::captureSecurity('login_failed', $email, 'wrong password', null, $request->ip(), $request->userAgent());
 ```
 
-`kind` is one of `login_failed`, `login_blocked`, `login_succeeded`, `password_reset` or any short name you choose. Failed and blocked logins are reported as warnings.
+`kind` is one of `login_failed`, `login_blocked`, `login_succeeded`, `password_reset_requested` or `privilege_granted`; any other kind arrives as a plain message. Login attempts need the project's secret key (init with it on the server) and the Scale plan; with the public key ingest refuses them with 403 `security_needs_secret_key`.
 
 ## Performance
 
