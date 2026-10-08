@@ -13,6 +13,11 @@ use Sentry\State\Scope;
 final class Blipit
 {
     public const DEFAULT_ENDPOINT = 'https://in.blipit.io';
+    public const PUBLIC_KEY_WARNING = "[blipit] login attempts need the project's secret key (blipit_sk_...). "
+        . 'This SDK was started with the public key, so captureSecurity sends nothing. Use the secret key on the server.';
+
+    private static bool $publicKey = false;
+    private static bool $publicKeyWarned = false;
 
     public static function dsn(string $key, $project, string $endpoint = self::DEFAULT_ENDPOINT): string
     {
@@ -28,6 +33,7 @@ final class Blipit
         if ($key === '') {
             throw new \InvalidArgumentException("Blipit::init needs the project's public key");
         }
+        self::$publicKey = strpos($key, 'blipit_pk_') === 0;
         if (!isset($options['project']) || $options['project'] === '') {
             throw new \InvalidArgumentException("Blipit::init needs the project id");
         }
@@ -80,6 +86,14 @@ final class Blipit
         ?string $userAgent = null,
         ?string $target = null
     ): ?EventId {
+        if (self::$publicKey) {
+            if (!self::$publicKeyWarned) {
+                self::$publicKeyWarned = true;
+                error_log(self::PUBLIC_KEY_WARNING);
+            }
+
+            return null;
+        }
         $payload = array_filter([
             'kind' => $kind,
             'actor' => $actor,

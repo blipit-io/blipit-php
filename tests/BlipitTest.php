@@ -37,7 +37,7 @@ final class BlipitTest extends TestCase
 
         try {
             Blipit::init([
-                'key' => 'blipit_pk_abc',
+                'key' => 'blipit_sk_abc',
                 'project' => 7,
                 'environment' => 'test',
                 'endpoint' => "http://127.0.0.1:{$port}",
