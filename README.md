@@ -27,7 +27,15 @@ Both values are on the project's Keys page at app.blipit.io. Uncaught exceptions
 
 ## Laravel
 
-Call `Blipit::init([...])` in `AppServiceProvider::boot`. If you want the Laravel integration (request context, queue jobs, a log channel), install `sentry/sentry-laravel` instead and set `SENTRY_LARAVEL_DSN=https://<public key>@in.blipit.io/<project id>` in `.env`.
+Call `Blipit::init([...])` in `AppServiceProvider::boot`. Laravel's exception handler catches errors from controllers, jobs and commands before PHP does, so also pass them on in `bootstrap/app.php`:
+
+```php
+->withExceptions(function (Exceptions $exceptions) {
+    $exceptions->report(fn (Throwable $e) => Blipit::captureException($e));
+})
+```
+
+ If you want the Laravel integration (request context, queue jobs, a log channel), install `sentry/sentry-laravel` instead and set `SENTRY_LARAVEL_DSN=https://<public key>@in.blipit.io/<project id>` in `.env`.
 
 ## Manual capture
 
