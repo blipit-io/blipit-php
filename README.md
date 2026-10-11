@@ -23,11 +23,11 @@ Blipit::init([
 ]);
 ```
 
-Both values are on the project's Keys page at app.blipit.io. Uncaught exceptions and fatal errors are reported on their own.
+Both values are on the project's Keys page at app.blipit.io. If the key or project id is empty, `init` writes a warning with `error_log`, returns `false` and Blipit stays off; it never throws, so a missing key cannot stop the app from booting. Uncaught exceptions and fatal errors are reported on their own.
 
 ## Laravel
 
-Call `Blipit::init([...])` in `AppServiceProvider::boot`. Laravel's exception handler catches errors from controllers, jobs and commands before PHP does, so also pass them on in `bootstrap/app.php`:
+Call `Blipit::init([...])` in `AppServiceProvider::boot`, reading the values through config (for example `config('services.blipit.key')` backed by `'key' => env('BLIPIT_KEY')` in `config/services.php`), because `env()` returns null in app code once `php artisan config:cache` has run. Laravel's exception handler catches errors from controllers, jobs and commands before PHP does, so also pass them on in `bootstrap/app.php`:
 
 ```php
 ->withExceptions(function (Exceptions $exceptions) {

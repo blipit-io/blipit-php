@@ -16,6 +16,12 @@ final class Blipit
     public const PUBLIC_KEY_WARNING = "[blipit] login attempts need the project's secret key (blipit_sk_...). "
         . 'This SDK was started with the public key, so captureSecurity sends nothing. Use the secret key on the server.';
 
+    public const MISSING_KEY_WARNING = "[blipit] Blipit::init got no key, so Blipit is off and nothing is sent. "
+        . "Pass the project's key (app.blipit.io, Keys). In Laravel read it through config/services.php, not env() in app code, "
+        . 'because env() returns null once config is cached (php artisan config:cache).';
+    public const MISSING_PROJECT_WARNING = '[blipit] Blipit::init got no project id, so Blipit is off and nothing is sent. '
+        . "Pass 'project' with the id from the project's Keys page at app.blipit.io.";
+
     private static bool $publicKey = false;
     private static bool $publicKeyWarned = false;
 
@@ -27,16 +33,20 @@ final class Blipit
         return "{$scheme}://{$key}@{$host}/{$project}";
     }
 
-    public static function init(array $options): void
+    public static function init(array $options): bool
     {
-        $key = (string) ($options['key'] ?? '');
+        $key = trim((string) ($options['key'] ?? ''));
         if ($key === '') {
-            throw new \InvalidArgumentException("Blipit::init needs the project's public key");
+            error_log(self::MISSING_KEY_WARNING);
+
+            return false;
+        }
+        if (!isset($options['project']) || trim((string) $options['project']) === '') {
+            error_log(self::MISSING_PROJECT_WARNING);
+
+            return false;
         }
         self::$publicKey = strpos($key, 'blipit_pk_') === 0;
-        if (!isset($options['project']) || $options['project'] === '') {
-            throw new \InvalidArgumentException("Blipit::init needs the project id");
-        }
         $project = $options['project'];
         $endpoint = (string) ($options['endpoint'] ?? self::DEFAULT_ENDPOINT);
         unset($options['key'], $options['project'], $options['endpoint']);
@@ -46,6 +56,8 @@ final class Blipit
             $options,
             ['dsn' => self::dsn($key, $project, $endpoint)]
         ));
+
+        return true;
     }
 
     public static function captureException(\Throwable $exception): ?EventId

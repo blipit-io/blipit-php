@@ -15,10 +15,21 @@ final class BlipitTest extends TestCase
         $this->assertSame('http://k@127.0.0.1:9000/3', Blipit::dsn('k', '3', 'http://127.0.0.1:9000/'));
     }
 
-    public function testInitRejectsMissingKey(): void
+    public function testInitWithoutKeyWarnsAndStaysOff(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        Blipit::init(['project' => 7]);
+        $log = tempnam(sys_get_temp_dir(), 'blipit');
+        $previous = ini_set('error_log', $log);
+        try {
+            $this->assertFalse(Blipit::init(['project' => 7]));
+            $this->assertFalse(Blipit::init(['key' => null, 'project' => 7]));
+            $this->assertFalse(Blipit::init(['key' => 'blipit_pk_abc', 'project' => '']));
+        } finally {
+            ini_set('error_log', $previous === false ? '' : $previous);
+        }
+        $written = (string) file_get_contents($log);
+        unlink($log);
+        $this->assertSame(2, substr_count($written, 'got no key'));
+        $this->assertSame(1, substr_count($written, 'got no project id'));
     }
 
     public function testEventsReachBlipit(): void
