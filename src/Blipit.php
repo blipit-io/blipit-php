@@ -5,13 +5,24 @@ declare(strict_types=1);
 namespace Blipit;
 
 use Sentry\Breadcrumb;
+use Sentry\Client;
+use Sentry\Event;
+use Sentry\EventHint;
 use Sentry\EventId;
+use Sentry\HttpClient\HttpClient;
+use Sentry\HttpClient\HttpClientInterface;
+use Sentry\HttpClient\Request;
+use Sentry\HttpClient\Response;
+use Sentry\Options;
 use Sentry\SentrySdk;
 use Sentry\Severity;
 use Sentry\State\Scope;
 
 final class Blipit
 {
+    public const VERSION = '0.2.1';
+    public const SDK_IDENTIFIER = 'blipit-php';
+    public const UPDATE_COMMAND = 'composer update blipit/blipit';
     public const DEFAULT_ENDPOINT = 'https://in.blipit.io';
     public const PUBLIC_KEY_WARNING = "[blipit] login attempts need the project's secret key (blipit_sk_...). "
         . 'This SDK was started with the public key, so captureSecurity sends nothing. Use the secret key on the server.';
@@ -24,6 +35,7 @@ final class Blipit
 
     private static bool $publicKey = false;
     private static bool $publicKeyWarned = false;
+    private static bool $noticed = false;
 
     public static function dsn(string $key, $project, string $endpoint = self::DEFAULT_ENDPOINT): string
     {
@@ -50,6 +62,11 @@ final class Blipit
         $project = $options['project'];
         $endpoint = (string) ($options['endpoint'] ?? self::DEFAULT_ENDPOINT);
         unset($options['key'], $options['project'], $options['endpoint']);
+        $options['before_send'] = self::withIdentity($options['before_send'] ?? null);
+        if ((($options['environment'] ?? null) === 'development' || !empty($options['debug'])) && !isset($options['http_client'])) {
+            $options['http_client'] = self::noticeClient();
+        }
+        unset($options['debug']);
 
         \Sentry\init(array_merge(
             ['send_default_pii' => false, 'traces_sample_rate' => 0.0],
@@ -58,6 +75,64 @@ final class Blipit
         ));
 
         return true;
+    }
+
+    public static function updateNotice(string $header, string $current = self::VERSION): ?string
+    {
+        $latest = json_decode(rawurldecode($header), true);
+        if (!is_array($latest) || !is_string($latest['version'] ?? null) || $latest['version'] === '' || $latest['version'] === $current) {
+            return null;
+        }
+        $note = is_string($latest['note'] ?? null) ? trim($latest['note']) : '';
+        $why = $note === '' ? '' : " — {$note}";
+
+        return "[blipit] {$latest['version']} is available (you have {$current}){$why} — " . self::UPDATE_COMMAND;
+    }
+
+    private static function withIdentity(?callable $user): callable
+    {
+        return static function (Event $event, ?EventHint $hint = null) use ($user): ?Event {
+            $event->setSdkIdentifier(self::SDK_IDENTIFIER);
+            $event->setSdkVersion(self::VERSION);
+
+            return $user === null ? $event : $user($event, $hint);
+        };
+    }
+
+    private static function noticeClient(): HttpClientInterface
+    {
+        return new class(new HttpClient(Client::SDK_IDENTIFIER, Client::SDK_VERSION)) implements HttpClientInterface {
+            private HttpClientInterface $next;
+
+            public function __construct(HttpClientInterface $next)
+            {
+                $this->next = $next;
+            }
+
+            public function sendRequest(Request $request, Options $options): Response
+            {
+                $response = $this->next->sendRequest($request, $options);
+                Blipit::notice($response);
+
+                return $response;
+            }
+        };
+    }
+
+    public static function notice(Response $response): void
+    {
+        if (self::$noticed) {
+            return;
+        }
+        try {
+            $line = self::updateNotice($response->getHeaderLine('X-Blipit-Latest'));
+        } catch (\Throwable $e) {
+            $line = null;
+        }
+        if ($line !== null) {
+            self::$noticed = true;
+            error_log($line);
+        }
     }
 
     public static function captureException(\Throwable $exception): ?EventId

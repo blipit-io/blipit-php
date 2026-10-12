@@ -60,3 +60,7 @@ Blipit::captureSecurity('login_failed', $email, 'wrong password', null, $request
 Pass `'traces_sample_rate' => 0.2` to `init` and requests show up on the Performance page.
 
 Docs: https://docs.blipit.io/php
+
+## Updates
+
+In development Blipit writes one line to the PHP error log when a newer version is out, with the reason and the command. Update with `composer update blipit/blipit`. Details: https://docs.blipit.io/updates
