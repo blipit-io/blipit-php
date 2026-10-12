@@ -86,6 +86,89 @@ final class BlipitTest extends TestCase
         $this->assertArrayNotHasKey('target', $security['contexts']['security']);
     }
 
+    public function testIdentityAndUserBeforeSend(): void
+    {
+        $result = $this->sendTwice('test', '', static function ($event) {
+            $event->setTags(['mine' => 'yes']);
+
+            return $event;
+        });
+        $event = json_decode(explode("\n", $result['received'][0]['body'])[2], true);
+        $this->assertSame('blipit-php', $event['sdk']['name']);
+        $this->assertSame(Blipit::VERSION, $event['sdk']['version']);
+        $this->assertSame('yes', $event['tags']['mine']);
+    }
+
+    public function testNoticeOnceInDevelopment(): void
+    {
+        $result = $this->sendTwice('development', rawurlencode('{"version":"0.2.9","severity":"normal","note":"Faster."}'));
+        $this->assertSame(1, substr_count($result['log'], 'is available'));
+        $this->assertStringContainsString('[blipit] 0.2.9 is available (you have ' . Blipit::VERSION . ') — Faster. — composer update blipit/blipit', $result['log']);
+    }
+
+    public function testNoNoticeInProduction(): void
+    {
+        $result = $this->sendTwice('production', rawurlencode('{"version":"0.2.9","note":"Faster."}'));
+        $this->assertStringNotContainsString('is available', $result['log']);
+    }
+
+    public function testMalformedHeaderIsSilent(): void
+    {
+        foreach (['', 'not%20json', rawurlencode('{"version":3}')] as $header) {
+            $this->assertStringNotContainsString('is available', $this->sendTwice('development', $header)['log']);
+        }
+        $this->assertSame('[blipit] 0.2.9 is available (you have 0.2.1) — composer update blipit/blipit', Blipit::updateNotice(rawurlencode('{"version":"0.2.9","note":""}'), '0.2.1'));
+    }
+
+    private function sendTwice(string $environment, string $header, ?callable $beforeSend = null): array
+    {
+        $log = tempnam(sys_get_temp_dir(), 'blipit');
+        $errors = tempnam(sys_get_temp_dir(), 'blipit');
+        $port = $this->freePort();
+        $server = proc_open(
+            [PHP_BINARY, '-S', "127.0.0.1:{$port}", __DIR__ . '/server.php'],
+            [['pipe', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']],
+            $pipes,
+            null,
+            array_merge(getenv(), ['BLIPIT_TEST_LOG' => $log, 'BLIPIT_TEST_LATEST' => $header])
+        );
+        $this->waitForPort($port);
+        $previous = ini_set('error_log', $errors);
+        $reset = new \ReflectionProperty(Blipit::class, 'noticed');
+        $reset->setValue(null, false);
+        try {
+            Blipit::init(array_filter([
+                'key' => 'blipit_pk_abc',
+                'project' => 7,
+                'environment' => $environment,
+                'endpoint' => "http://127.0.0.1:{$port}",
+                'default_integrations' => false,
+                'before_send' => $beforeSend,
+            ], static function ($value): bool {
+                return $value !== null;
+            }));
+            Blipit::captureMessage('one');
+            Blipit::flush();
+            Blipit::captureMessage('two');
+            Blipit::flush();
+            $received = array_map(
+                static function (string $line): array {
+                    return json_decode($line, true);
+                },
+                array_values(array_filter(explode("\n", (string) file_get_contents($log))))
+            );
+        } finally {
+            ini_set('error_log', $previous === false ? '' : $previous);
+            proc_terminate($server);
+            proc_close($server);
+            @unlink($log);
+        }
+        $written = (string) file_get_contents($errors);
+        unlink($errors);
+
+        return ['received' => $received, 'log' => $written];
+    }
+
     private function freePort(): int
     {
         $socket = stream_socket_server('tcp://127.0.0.1:0');

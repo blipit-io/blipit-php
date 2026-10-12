@@ -12,4 +12,7 @@ file_put_contents(
     FILE_APPEND
 );
 header('Content-Type: application/json');
+if ((string) getenv('BLIPIT_TEST_LATEST') !== '') {
+    header('X-Blipit-Latest: ' . getenv('BLIPIT_TEST_LATEST'));
+}
 echo '{}';
