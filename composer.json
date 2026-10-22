@@ -1,29 +1,54 @@
 {
   "name": "blipit/blipit",
-  "description": "Blipit error monitoring for PHP and Laravel. Know your app broke before your users tell you.",
+  "description": "Blipit error monitoring for PHP, Laravel and Symfony. Know your app broke before your users tell you.",
   "type": "library",
   "license": "MIT",
-  "keywords": ["error-monitoring", "errors", "logging", "blipit", "laravel"],
+  "keywords": [
+    "error-monitoring",
+    "errors",
+    "logging",
+    "blipit",
+    "laravel",
+    "symfony"
+  ],
   "homepage": "https://blipit.io",
   "support": {
     "docs": "https://docs.blipit.io/php",
     "email": "support@blipit.io"
   },
   "authors": [
-    { "name": "Louward Labs", "email": "support@blipit.io" }
+    {
+      "name": "Louward Labs",
+      "email": "support@blipit.io"
+    }
   ],
   "require": {
     "php": "^7.4 || ^8.0",
-    "sentry/sentry": "^4.0"
+    "ext-json": "*"
   },
   "require-dev": {
+    "orchestra/testbench": "^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0",
     "phpunit/phpunit": "^9.6 || ^10.5 || ^11.0 || ^12.0"
   },
+  "suggest": {
+    "ext-curl": "Sends events with curl; without it Blipit falls back to PHP streams"
+  },
   "autoload": {
-    "psr-4": { "Blipit\\": "src/" }
+    "psr-4": {
+      "Blipit\\": "src/"
+    }
   },
   "autoload-dev": {
-    "psr-4": { "Blipit\\Tests\\": "tests/" }
+    "psr-4": {
+      "Blipit\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Blipit\\Laravel\\BlipitServiceProvider"
+      ]
+    }
   },
   "scripts": {
     "test": "phpunit"
