@@ -34,6 +34,7 @@ final class Nuggets
     public array $spans = [];
     public array $stack = [];
     private array $sources = [];
+    private static array $refusedKeys = [];
     private float $tracesRate;
     private float $sampleRate;
     private int $maxBreadcrumbs;
@@ -525,6 +526,20 @@ final class Nuggets
     }
 
     public function post(string $path, array $body, float $timeout): array
+    {
+        if (isset(self::$refusedKeys[$this->key])) {
+            return [409, [], null];
+        }
+        $answer = $this->send($path, $body, $timeout);
+        if ($answer[0] === 409 && is_array($answer[2]) && ($answer[2]['reason'] ?? null) === 'platform_mismatch') {
+            self::$refusedKeys[$this->key] = true;
+            error_log('[blipit] ' . (is_string($answer[2]['error'] ?? null) ? $answer[2]['error'] : 'This key belongs to a project for another platform.') . ' Blipit stopped sending with this key until the process restarts.');
+        }
+
+        return $answer;
+    }
+
+    private function send(string $path, array $body, float $timeout): array
     {
         $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
         $headers = ['Content-Type: application/json', 'X-Blipit-Key: ' . $this->key, 'User-Agent: ' . self::SDK_NAME . '/' . Blipit::VERSION];

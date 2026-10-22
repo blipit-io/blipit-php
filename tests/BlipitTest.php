@@ -157,6 +157,23 @@ final class BlipitTest extends TestCase
         $this->assertGreaterThan(microtime(true) + 25, Blipit::client()->limitedUntil);
     }
 
+    public function testPlatformMismatchStopsSending(): void
+    {
+        $this->start(['key' => 'blipit_sk_mismatch']);
+        $message = 'This project is for iOS. Create a separate Backend project in Blipit and use its key.';
+        $this->reply(409, [], ['error' => $message, 'reason' => 'platform_mismatch', 'project_platform' => 'ios', 'sent_platform' => 'backend']);
+        $log = tempnam(sys_get_temp_dir(), 'blipit');
+        $previous = ini_set('error_log', $log);
+        Blipit::captureMessage('one');
+        Blipit::flush();
+        Blipit::captureMessage('two');
+        Blipit::flush();
+        ini_set('error_log', (string) $previous);
+        $this->assertSame(['one'], array_column($this->events(), 'message'));
+        $this->assertSame(1, substr_count((string) file_get_contents($log), $message));
+        unlink($log);
+    }
+
     public function testServerErrorIsRetried(): void
     {
         $this->start();

@@ -6,7 +6,7 @@ namespace Blipit;
 
 final class Blipit
 {
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.3.1';
     public const SDK_IDENTIFIER = Nuggets::SDK_NAME;
     public const UPDATE_COMMAND = 'composer update blipit/blipit';
     public const DEFAULT_ENDPOINT = 'https://in.blipit.io';
