@@ -525,12 +525,12 @@ final class Nuggets
         }
     }
 
-    public function post(string $path, array $body, float $timeout): array
+    public function post(string $path, array $body, float $timeout, string $method = 'POST'): array
     {
         if (isset(self::$refusedKeys[$this->key])) {
             return [409, [], null];
         }
-        $answer = $this->send($path, $body, $timeout);
+        $answer = $this->send($path, $body, $timeout, $method);
         if ($answer[0] === 409 && is_array($answer[2]) && ($answer[2]['reason'] ?? null) === 'platform_mismatch') {
             self::$refusedKeys[$this->key] = true;
             error_log('[blipit] ' . (is_string($answer[2]['error'] ?? null) ? $answer[2]['error'] : 'This key belongs to a project for another platform.') . ' Blipit stopped sending with this key until the process restarts.');
@@ -539,7 +539,7 @@ final class Nuggets
         return $answer;
     }
 
-    private function send(string $path, array $body, float $timeout): array
+    private function send(string $path, array $body, float $timeout, string $method = 'POST'): array
     {
         $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
         $headers = ['Content-Type: application/json', 'X-Blipit-Key: ' . $this->key, 'User-Agent: ' . self::SDK_NAME . '/' . Blipit::VERSION];
@@ -549,6 +549,7 @@ final class Nuggets
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
+                CURLOPT_CUSTOMREQUEST => $method,
                 CURLOPT_POSTFIELDS => $json,
                 CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_RETURNTRANSFER => true,
@@ -571,7 +572,7 @@ final class Nuggets
 
             return [$response === false ? 0 : $status, $received, is_string($response) ? json_decode($response, true) : null];
         }
-        $context = stream_context_create(['http' => ['method' => 'POST', 'header' => implode("\r\n", $headers), 'content' => $json, 'timeout' => $timeout, 'ignore_errors' => true]]);
+        $context = stream_context_create(['http' => ['method' => $method, 'header' => implode("\r\n", $headers), 'content' => $json, 'timeout' => $timeout, 'ignore_errors' => true]]);
         $stream = @fopen($url, 'r', false, $context);
         $response = $stream === false ? false : stream_get_contents($stream);
         $lines = $stream === false ? [] : (array) (stream_get_meta_data($stream)['wrapper_data'] ?? []);

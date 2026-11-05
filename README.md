@@ -116,3 +116,7 @@ vendor/bin/phpunit
 ```
 
 Docs: https://docs.blipit.io/php
+
+## Package list
+
+At the end of a request (after the response on PHP-FPM), the SDK sends Composer's installed packages (`Composer\InstalledVersions`) to Blipit, which checks them against known vulnerabilities (Scale plan, Security, Weak spots). It is sent again only when the list changes, needs the secret key, and `'report_packages' => false` turns it off.

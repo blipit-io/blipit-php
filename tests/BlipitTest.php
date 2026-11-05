@@ -31,6 +31,7 @@ final class BlipitTest extends TestCase
             'environment' => 'test',
             'endpoint' => $this->ingestUrl,
             'default_integrations' => false,
+            'report_packages' => false,
         ], $options)));
     }
 
@@ -375,6 +376,29 @@ final class BlipitTest extends TestCase
         $files = array_merge(glob($root . '/src/*.php'), glob($root . '/src/*/*.php'), [$root . '/composer.json']);
         foreach ($files as $file) {
             $this->assertStringNotContainsStringIgnoringCase('sentry', (string) file_get_contents($file), $file);
+        }
+    }
+
+    public function testThePackageListIsSentOnceWithPut(): void
+    {
+        $this->start();
+        $key = 'blipit_sk_php_packages_' . getmypid();
+        @unlink(\Blipit\Packages::marker($key));
+        $client = new Nuggets($key, $this->ingestUrl, []);
+        $list = [['ecosystem' => 'Packagist', 'name' => 'guzzlehttp/guzzle', 'version' => '7.8.1']];
+        $this->assertSame(1, \Blipit\Packages::report($client, $key, $list));
+        $this->assertSame(0, \Blipit\Packages::report($client, $key, $list));
+        @unlink(\Blipit\Packages::marker($key));
+        $sent = array_values(array_filter($this->received(), static fn (array $r): bool => $r['path'] === '/api/v1/sdk/packages'));
+        $this->assertCount(1, $sent);
+        $this->assertSame($key, $sent[0]['key']);
+        $this->assertSame('PUT', $sent[0]['method']);
+        $this->assertSame(['packages' => $list], $sent[0]['body']);
+        $installed = \Blipit\Packages::installed();
+        $this->assertNotEmpty($installed);
+        foreach ($installed as $p) {
+            $this->assertSame('Packagist', $p['ecosystem']);
+            $this->assertNotSame('blipit/blipit', $p['name']);
         }
     }
 }
