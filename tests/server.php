@@ -7,6 +7,7 @@ $log = (string) getenv('BLIPIT_TEST_LOG');
 file_put_contents($log, json_encode([
     'path' => $_SERVER['REQUEST_URI'],
     'key' => $_SERVER['HTTP_X_BLIPIT_KEY'] ?? null,
+    'method' => $_SERVER['REQUEST_METHOD'] ?? null,
     'body' => json_decode($body, true),
 ]) . "\n", FILE_APPEND);
 $replies = $log . '.replies';

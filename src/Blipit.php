@@ -6,7 +6,7 @@ namespace Blipit;
 
 final class Blipit
 {
-    public const VERSION = '0.3.1';
+    public const VERSION = '0.4.0';
     public const SDK_IDENTIFIER = Nuggets::SDK_NAME;
     public const UPDATE_COMMAND = 'composer update blipit/blipit';
     public const DEFAULT_ENDPOINT = 'https://in.blipit.io';
@@ -54,6 +54,9 @@ final class Blipit
         unset($options['key'], $options['project'], $options['endpoint']);
         self::$client = new Nuggets($key, $endpoint, $options);
         self::$seen = [];
+        if (($options['report_packages'] ?? true) !== false) {
+            Packages::register($key);
+        }
         if (($options['default_integrations'] ?? true) !== false) {
             self::hook();
             if (PHP_SAPI !== 'cli' && self::$client->tracing() && isset($_SERVER['REQUEST_METHOD'])) {
