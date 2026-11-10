@@ -1,3 +1,7 @@
+## 0.4.1
+
+- Every request to Blipit (events, sessions, logs, traces, package list) sends `X-Blipit-Sdk: blipit-php/<version>`, so the update card in Blipit always shows the version you run.
+
 ## 0.4.0
 
 - Package list for the vulnerable library check (Scale plan): `init` reads Composer's installed packages (`Composer\InstalledVersions`, Composer 2) as Packagist packages and sends them with `PUT /api/v1/sdk/packages` and the secret key at the end of the request, after the response on PHP-FPM, and again only when the list changes (a fingerprint is kept in the temp folder). At most 3000 packages. A public key never sends it. Turn it off with `'report_packages' => false`.

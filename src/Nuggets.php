@@ -542,7 +542,7 @@ final class Nuggets
     private function send(string $path, array $body, float $timeout, string $method = 'POST'): array
     {
         $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
-        $headers = ['Content-Type: application/json', 'X-Blipit-Key: ' . $this->key, 'User-Agent: ' . self::SDK_NAME . '/' . Blipit::VERSION];
+        $headers = ['Content-Type: application/json', 'X-Blipit-Key: ' . $this->key, 'X-Blipit-Sdk: ' . self::SDK_NAME . '/' . Blipit::VERSION, 'User-Agent: ' . self::SDK_NAME . '/' . Blipit::VERSION];
         $url = $this->base . $path;
         if (function_exists('curl_init')) {
             $received = [];

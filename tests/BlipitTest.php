@@ -51,6 +51,7 @@ final class BlipitTest extends TestCase
         $received = $this->received();
         $this->assertSame('/api/v1/events', $received[0]['path']);
         $this->assertSame('blipit_sk_abc', $received[0]['key']);
+        $this->assertSame('blipit-php/' . Blipit::VERSION, $received[0]['sdk']);
         $event = $received[0]['body'];
         $this->assertSame('hello from php', $event['message']);
         $this->assertSame('warning', $event['level']);
